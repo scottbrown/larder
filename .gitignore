@@ -1,0 +1,5 @@
+.build/
+.test/
+*.html
+!internal/**/*.html
+!*.tmpl.html

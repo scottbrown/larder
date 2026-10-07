@@ -1,0 +1,39 @@
+version: '3'
+
+vars:
+  BINARY: larder
+
+tasks:
+  build:
+    desc: Build the larder binary into .build/
+    cmds:
+      - mkdir -p .build
+      - go build -o .build/{{.BINARY}} ./cmd/{{.BINARY}}
+
+  test:
+    desc: Run tests with coverage written to .test/
+    cmds:
+      - mkdir -p .test
+      - go test -coverprofile .test/coverage.out ./...
+      - go tool cover -func .test/coverage.out | tail -1
+
+  coverage:
+    desc: Open an HTML coverage report from .test/
+    deps: [test]
+    cmds:
+      - go tool cover -html .test/coverage.out -o .test/coverage.html
+
+  vet:
+    desc: Run go vet
+    cmds:
+      - go vet ./...
+
+  fmt:
+    desc: Format all Go source
+    cmds:
+      - gofmt -w .
+
+  clean:
+    desc: Remove build and test artifacts
+    cmds:
+      - rm -rf .build .test

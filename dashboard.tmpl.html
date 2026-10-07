@@ -1,0 +1,913 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Larder</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --ring: rgba(11, 11, 11, 0.10);
+  --wash: rgba(11, 11, 11, 0.04);
+  --accent: #2a78d6;
+  --paid: #e87ba4;
+  --store-1: #2a78d6;
+  --store-2: #eb6834;
+  --store-3: #1baf7a;
+  --store-other: #a8a69f;
+  --up: #e34948;
+  --down: #2a78d6;
+  --good: #0ca30c;
+  --warning: #fab219;
+  --serious: #ec835a;
+  --up-text: #b42d2c;
+  --down-text: #1c5cab;
+  --focus: #2a78d6;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --ring: rgba(255, 255, 255, 0.10);
+    --wash: rgba(255, 255, 255, 0.05);
+    --accent: #3987e5;
+    --paid: #d55181;
+    --store-1: #3987e5;
+    --store-2: #d95926;
+    --store-3: #199e70;
+    --store-other: #6b6a65;
+    --up: #e66767;
+    --down: #3987e5;
+    --up-text: #f08a8a;
+    --down-text: #86b6ef;
+    --focus: #86b6ef;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --ink: #ffffff;
+  --ink-2: #c3c2b7;
+  --muted: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --ring: rgba(255, 255, 255, 0.10);
+  --wash: rgba(255, 255, 255, 0.05);
+  --accent: #3987e5;
+  --paid: #d55181;
+  --store-1: #3987e5;
+  --store-2: #d95926;
+  --store-3: #199e70;
+  --store-other: #6b6a65;
+  --up: #e66767;
+  --down: #3987e5;
+  --up-text: #f08a8a;
+  --down-text: #86b6ef;
+  --focus: #86b6ef;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.wrap { max-width: 1240px; margin: 0 auto; padding: 28px 20px 48px; }
+header h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -0.01em; }
+header p { margin: 0; color: var(--ink-2); }
+h2 { font-size: 16px; margin: 0 0 2px; }
+.sub { color: var(--ink-2); margin: 0 0 14px; font-size: 13px; }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--ring);
+  border-radius: 12px;
+  padding: 18px 18px 16px;
+}
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 22px 0 12px; }
+.tile .label { color: var(--ink-2); font-size: 13px; }
+.tile .value { font-size: 30px; font-weight: 600; margin: 2px 0; }
+.tile.hero .value { font-size: 48px; line-height: 1.1; }
+.tile .note { color: var(--muted); font-size: 12px; }
+.grid-2 { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 12px; margin-top: 12px; align-items: start; }
+.stack { display: grid; gap: 12px; margin-top: 12px; }
+@media (max-width: 980px) { .grid-2 { grid-template-columns: minmax(0, 1fr); } }
+
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px; }
+.filters input[type=search], .filters select {
+  font: inherit; color: var(--ink); background: var(--page);
+  border: 1px solid var(--ring); border-radius: 8px; padding: 6px 10px; min-width: 0;
+}
+.filters input[type=search] { flex: 1 1 180px; }
+.seg { display: inline-flex; border: 1px solid var(--ring); border-radius: 8px; overflow: hidden; }
+.seg button {
+  font: inherit; font-size: 13px; color: var(--ink-2); background: transparent;
+  border: 0; padding: 6px 10px; cursor: pointer;
+}
+.seg button + button { border-left: 1px solid var(--ring); }
+.seg button[aria-pressed=true] { background: var(--wash); color: var(--ink); font-weight: 600; }
+button:focus-visible, input:focus-visible, select:focus-visible, tr:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--focus); outline-offset: 1px;
+}
+
+.table-wrap { overflow-x: auto; max-height: 720px; overflow-y: auto; border-top: 1px solid var(--grid); }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th { position: sticky; top: 0; background: var(--surface); color: var(--ink-2); font-weight: 500; font-size: 12px; z-index: 1; }
+th button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+th button[data-dir]::after { content: attr(data-dir); margin-left: 4px; color: var(--muted); }
+td.num, th.num { text-align: right; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--wash); }
+tbody tr[aria-selected=true] { background: var(--wash); box-shadow: inset 3px 0 0 var(--accent); }
+.name { font-weight: 500; white-space: normal; min-width: 150px; }
+.name small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
+.delta-up { color: var(--up-text); }
+.delta-down { color: var(--down-text); }
+.dim { color: var(--muted); }
+.count { color: var(--muted); font-size: 12px; margin-left: auto; }
+
+.status { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; }
+.status svg { flex: none; }
+
+.detail h3 { font-size: 18px; margin: 0; }
+.detail .meta { color: var(--ink-2); font-size: 13px; margin: 2px 0 12px; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px 14px; margin: 0 0 16px; }
+.facts div span { display: block; color: var(--ink-2); font-size: 12px; }
+.facts div strong { font-size: 16px; font-weight: 600; }
+.chart-title { font-size: 13px; font-weight: 600; margin: 14px 0 2px; }
+.chart-note { font-size: 12px; color: var(--muted); margin: 0 0 4px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-2); margin: 4px 0; }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+.legend i.line { width: 14px; height: 2px; border-radius: 1px; vertical-align: 3px; }
+.legend i.ring { background: var(--surface); border: 1.5px solid var(--ink); width: 9px; height: 9px; }
+.keys { font-size: 12px; color: var(--muted); margin-top: 12px; }
+.keys code { font-size: 12px; background: var(--wash); padding: 1px 5px; border-radius: 4px; color: var(--ink-2); }
+.empty { color: var(--muted); padding: 28px 0; text-align: center; }
+
+svg.chart { display: block; width: 100%; overflow: visible; }
+svg text { fill: var(--muted); font-size: 11px; font-family: inherit; }
+svg .label-ink { fill: var(--ink); }
+svg .label-ink-2 { fill: var(--ink-2); }
+
+.tip {
+  position: fixed; pointer-events: none; z-index: 10;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--ring);
+  border-radius: 8px; padding: 7px 10px; font-size: 12px; line-height: 1.4;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12); max-width: 260px;
+}
+.tip strong { font-size: 14px; display: block; }
+.tip .row { display: flex; align-items: center; gap: 6px; color: var(--ink-2); }
+.tip .key { width: 12px; height: 2px; border-radius: 1px; }
+
+details { margin-top: 10px; font-size: 13px; }
+details summary { cursor: pointer; color: var(--ink-2); }
+details table { margin-top: 8px; }
+footer { color: var(--muted); font-size: 12px; margin-top: 24px; }
+footer code { font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Larder</h1>
+    <p id="intro"></p>
+  </header>
+
+  <section class="tiles" id="tiles"></section>
+
+  <section class="card">
+    <h2>What your regular basket costs</h2>
+    <p class="sub" id="index-sub"></p>
+    <div id="index-chart"></div>
+    <details>
+      <summary>Show as a table</summary>
+      <div class="table-wrap" style="max-height:none"><table id="index-table"></table></div>
+    </details>
+  </section>
+
+  <div class="grid-2">
+    <section class="card">
+      <h2>Regulars</h2>
+      <p class="sub">Products bought on at least four separate days over two months or more. Select one for its history.</p>
+      <div class="filters">
+        <input type="search" id="q" placeholder="Search products" aria-label="Search products">
+        <div class="seg" role="group" aria-label="Status" id="status-filter"></div>
+        <select id="store-filter" aria-label="Store"></select>
+        <select id="category-filter" aria-label="Category"></select>
+        <span class="count" id="count"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="head"></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card detail" id="detail" aria-live="polite"></section>
+  </div>
+
+  <div class="stack">
+    <section class="card">
+      <h2>Biggest price changes</h2>
+      <p class="sub" id="movers-sub"></p>
+      <div class="filters"><div class="seg" role="group" aria-label="Price measure" id="movers-measure"></div></div>
+      <div id="movers"></div>
+    </section>
+
+    <section class="card">
+      <h2>How well receipts were read</h2>
+      <p class="sub">A receipt is reconciled when its items add up to its printed subtotal. Items from other receipts are still counted, but may be missing a line or two.</p>
+      <div class="table-wrap" style="max-height:none"><table id="quality"></table></div>
+    </section>
+  </div>
+
+  <footer id="footer"></footer>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>const DATA = {{.}};</script>
+<script>
+"use strict";
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const NS = "http://www.w3.org/2000/svg";
+  const DAY = 86400000;
+
+  const storeNames = Object.fromEntries(DATA.stores.map((s) => [s.id, s.name]));
+  // Store colours follow the store, never its rank, so they stay put as filters change.
+  const storeSlot = { costco: "--store-1", superstore: "--store-2", walmart: "--store-3" };
+  const storeColour = (id) => `var(${storeSlot[id] || "--store-other"})`;
+
+  const money = (cents) => (cents < 0 ? "-$" : "$") + (Math.abs(cents) / 100).toFixed(2);
+  const pct = (f) => (f > 0 ? "+" : f < 0 ? "−" : "") + Math.abs(f * 100).toFixed(0) + "%";
+  const date = (s) => new Date(s + "T00:00:00");
+  const fmtDate = (s) => date(s).toLocaleDateString("en-CA", { year: "numeric", month: "short", day: "numeric" });
+  const unitSuffix = (p) => (p.unit === "kg" ? "/kg" : "");
+  const latest = (p) => (p.yearly && p.yearly.length ? p.yearly[p.yearly.length - 1] : null);
+  const plural = (n, one, many) => `${n.toLocaleString("en-CA")} ${n === 1 ? one : many}`;
+  const cadenceText = (d) => (d < 1.5 ? "every day or two" : d < 10.5 ? `every ${Math.round(d)} days` : d < 56 ? `every ${Math.round(d / 7)} wk` : `every ${Math.round(d / 30.4)} mo`);
+
+  function el(tag, attrs, text) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, v);
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function svgEl(tag, attrs) {
+    const e = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, v);
+    return e;
+  }
+
+  // ---- tooltip -----------------------------------------------------------
+  const tip = $("tip");
+  function showTip(evt, value, rows) {
+    tip.replaceChildren();
+    tip.append(el("strong", {}, value));
+    for (const r of rows) {
+      const row = el("div", { class: "row" });
+      if (r.colour) {
+        const k = el("span", { class: "key" });
+        k.style.background = r.colour;
+        row.append(k);
+      }
+      row.append(document.createTextNode(r.text));
+      tip.append(row);
+    }
+    tip.hidden = false;
+    const pad = 14;
+    const box = tip.getBoundingClientRect();
+    let x = evt.clientX + pad, y = evt.clientY + pad;
+    if (x + box.width > window.innerWidth - 8) x = evt.clientX - box.width - pad;
+    if (y + box.height > window.innerHeight - 8) y = evt.clientY - box.height - pad;
+    tip.style.left = Math.max(8, x) + "px";
+    tip.style.top = Math.max(8, y) + "px";
+  }
+  const hideTip = () => { tip.hidden = true; };
+
+  // ---- status ------------------------------------------------------------
+  const STATUS = {
+    "overdue": { label: "Overdue", colour: "var(--serious)", order: 0, icon: "alert" },
+    "due": { label: "Due", colour: "var(--warning)", order: 1, icon: "clock" },
+    "on-track": { label: "Stocked", colour: "var(--good)", order: 2, icon: "check" },
+    "lapsed": { label: "Lapsed", colour: "var(--muted)", order: 3, icon: "dash" },
+  };
+  function statusBadge(status) {
+    const s = STATUS[status];
+    const wrap = el("span", { class: "status" });
+    const svg = svgEl("svg", { width: 14, height: 14, viewBox: "0 0 14 14", "aria-hidden": "true" });
+    svg.append(svgEl("circle", { cx: 7, cy: 7, r: 6.5, fill: s.colour }));
+    const paths = {
+      check: "M4 7.2l2 2 4-4.4",
+      clock: "M7 3.8V7l2.2 1.4",
+      alert: "M7 3.6v4.2M7 10.2v.2",
+      dash: "M4.2 7h5.6",
+    };
+    svg.append(svgEl("path", { d: paths[s.icon], stroke: "#fff", "stroke-width": 1.7, fill: "none", "stroke-linecap": "round", "stroke-linejoin": "round" }));
+    wrap.append(svg, document.createTextNode(s.label));
+    return wrap;
+  }
+
+  // ---- header & tiles ------------------------------------------------------
+  const products = DATA.products || [];
+  const active = products.filter((p) => p.status !== "lapsed");
+  const dueNow = products.filter((p) => p.status === "due" || p.status === "overdue");
+  const idx = DATA.index || [];
+  const firstYear = DATA.from.slice(0, 4), lastYear = DATA.to.slice(0, 4);
+
+  $("intro").textContent = `What you buy again and again, how often, and how its price has moved — from ${plural(DATA.receipts, "grocery receipt", "grocery receipts")}, ${firstYear}–${lastYear}.`;
+
+  function tile(label, value, note, hero) {
+    const t = el("div", { class: "card tile" + (hero ? " hero" : "") });
+    t.append(el("div", { class: "label" }, label), el("div", { class: "value" }, value), el("div", { class: "note" }, note));
+    return t;
+  }
+  const tiles = $("tiles");
+  if (idx.length > 1) {
+    const change = idx[idx.length - 1].index / 100 - 1;
+    const paidChange = idx[idx.length - 1].paid / 100 - 1;
+    tiles.append(tile("Regular basket, shelf prices", pct(change), `${idx[0].year} to ${idx[idx.length - 1].year}. What you actually paid, sales included: ${pct(paidChange)}`, true));
+  }
+  tiles.append(tile("Regular products", active.length.toLocaleString("en-CA"), `still bought, plus ${products.length - active.length} lapsed`));
+  tiles.append(tile("Due or overdue", dueNow.length.toLocaleString("en-CA"), "past their usual interval"));
+  if (DATA.items) {
+    tiles.append(tile("Saved on sales", "$" + Math.round(DATA.saved / 100).toLocaleString("en-CA"), `${Math.round((100 * DATA.saleItems) / DATA.items)}% of items were bought on sale`));
+  }
+  const q = DATA.quality.reduce((a, s) => ({ r: a.r + s.receipts, ok: a.ok + s.reconciled }), { r: 0, ok: 0 });
+  tiles.append(tile("Receipts read cleanly", q.r ? Math.round((100 * q.ok) / q.r) + "%" : "—", `${q.ok.toLocaleString("en-CA")} of ${q.r.toLocaleString("en-CA")} add up exactly`));
+
+  // ---- basket index line chart ------------------------------------------
+  const SERIES = [
+    { key: "index", label: "Shelf prices", colour: "var(--accent)" },
+    { key: "paid", label: "What you paid", colour: "var(--paid)" },
+  ];
+  function drawIndex() {
+    const host = $("index-chart");
+    host.replaceChildren();
+    if (idx.length < 2) {
+      host.append(el("p", { class: "empty" }, "Not enough years of prices yet."));
+      return;
+    }
+    const legend = el("div", { class: "legend" });
+    for (const sr of SERIES) {
+      const item = el("span"), i = el("i", { class: "line" });
+      i.style.background = sr.colour;
+      item.append(i, document.createTextNode(sr.label));
+      legend.append(item);
+    }
+    host.append(legend);
+
+    const W = Math.max(320, host.clientWidth), H = 220;
+    const m = { t: 16, r: 74, b: 26, l: 40 };
+    const ys = idx.flatMap((d) => SERIES.map((sr) => d[sr.key]));
+    const lo = Math.floor(Math.min(100, ...ys) / 10) * 10, hi = Math.ceil(Math.max(...ys) / 10) * 10;
+    const x = (i) => m.l + (i / (idx.length - 1)) * (W - m.l - m.r);
+    const y = (v) => m.t + (1 - (v - lo) / (hi - lo || 1)) * (H - m.t - m.b);
+    const svg = svgEl("svg", { class: "chart", viewBox: `0 0 ${W} ${H}`, height: H, role: "img", "aria-label": "Price index of your regular basket by year, at shelf prices and at prices paid" });
+
+    for (let v = lo; v <= hi; v += 10) {
+      svg.append(svgEl("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: v === 100 ? "var(--axis)" : "var(--grid)", "stroke-width": 1 }));
+      const t = svgEl("text", { x: m.l - 8, y: y(v) + 4, "text-anchor": "end" });
+      t.textContent = v;
+      svg.append(t);
+    }
+    idx.forEach((d, i) => {
+      const t = svgEl("text", { x: x(i), y: H - 6, "text-anchor": "middle" });
+      t.textContent = d.year;
+      svg.append(t);
+    });
+    const ends = [];
+    for (const sr of SERIES) {
+      const pts = idx.map((d, i) => [x(i), y(d[sr.key])]);
+      const line = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join("");
+      svg.append(svgEl("path", { d: line, fill: "none", stroke: sr.colour, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+      const end = pts[pts.length - 1];
+      svg.append(svgEl("circle", { cx: end[0], cy: end[1], r: 4.5, fill: sr.colour, stroke: "var(--surface)", "stroke-width": 2 }));
+      ends.push({ y: end[1], x: end[0], text: `${sr.label} ${idx[idx.length - 1][sr.key].toFixed(0)}` });
+    }
+    // Direct end labels only when they would not collide; otherwise the
+    // legend and tooltip carry identity.
+    if (Math.abs(ends[0].y - ends[1].y) >= 16) {
+      for (const e of ends) {
+        const lbl = svgEl("text", { x: e.x + 10, y: e.y + 4, class: "label-ink" });
+        lbl.textContent = e.text.replace(/^.* /, "");
+        lbl.style.fontSize = "13px";
+        lbl.style.fontWeight = "600";
+        svg.append(lbl);
+      }
+    } else {
+      const lbl = svgEl("text", { x: ends[0].x + 10, y: (ends[0].y + ends[1].y) / 2 + 4, class: "label-ink" });
+      lbl.textContent = idx[idx.length - 1].index.toFixed(0);
+      lbl.style.fontSize = "13px";
+      lbl.style.fontWeight = "600";
+      svg.append(lbl);
+    }
+
+    const cross = svgEl("line", { y1: m.t, y2: H - m.b, stroke: "var(--axis)", "stroke-width": 1, visibility: "hidden" });
+    svg.append(cross);
+    const dots = SERIES.map((sr) => {
+      const c = svgEl("circle", { r: 4.5, fill: sr.colour, stroke: "var(--surface)", "stroke-width": 2, visibility: "hidden" });
+      svg.append(c);
+      return c;
+    });
+    const hit = svgEl("rect", { x: m.l, y: 0, width: W - m.l - m.r, height: H, fill: "transparent", tabindex: 0, "aria-label": "Basket index; use arrow keys to step through years" });
+    svg.append(hit);
+    let focusIdx = idx.length - 1;
+    function at(i, evt) {
+      const d = idx[i];
+      cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i));
+      cross.setAttribute("visibility", "visible");
+      SERIES.forEach((sr, k) => {
+        dots[k].setAttribute("cx", x(i)); dots[k].setAttribute("cy", y(d[sr.key]));
+        dots[k].setAttribute("visibility", "visible");
+      });
+      const rows = SERIES.map((sr) => ({
+        text: `${sr.label}: ${d[sr.key].toFixed(1)} (${pct(d[sr.key] / 100 - 1)} vs ${idx[0].year}${i > 0 ? `, ${pct(d[sr.key] / idx[i - 1][sr.key] - 1)} on the year` : ""})`,
+        colour: sr.colour,
+      }));
+      if (i > 0) rows.push({ text: `${d.products} products compared` });
+      showTip(evt, String(d.year), rows);
+    }
+    hit.addEventListener("pointermove", (evt) => {
+      const r = svg.getBoundingClientRect();
+      const px = ((evt.clientX - r.left) / r.width) * W;
+      focusIdx = Math.max(0, Math.min(idx.length - 1, Math.round(((px - m.l) / (W - m.l - m.r)) * (idx.length - 1))));
+      at(focusIdx, evt);
+    });
+    const off = () => { hideTip(); cross.setAttribute("visibility", "hidden"); dots.forEach((d) => d.setAttribute("visibility", "hidden")); };
+    hit.addEventListener("pointerleave", off);
+    hit.addEventListener("blur", off);
+    hit.addEventListener("keydown", (evt) => {
+      if (evt.key !== "ArrowLeft" && evt.key !== "ArrowRight") return;
+      evt.preventDefault();
+      focusIdx = Math.max(0, Math.min(idx.length - 1, focusIdx + (evt.key === "ArrowRight" ? 1 : -1)));
+      const r = svg.getBoundingClientRect();
+      at(focusIdx, { clientX: r.left + (x(focusIdx) / W) * r.width, clientY: r.top + (y(idx[focusIdx].index) / H) * r.height });
+    });
+    host.append(svg);
+  }
+  if (idx.length > 1) {
+    $("index-sub").textContent = `Shelf prices track what stores charge at regular price. What you paid uses the prices actually paid after sales and instant savings, so it falls when you catch more sales. Both compare each regular product with the year before, weighted by what you spend on it. ${idx[0].year} = 100.`;
+    const t = $("index-table");
+    t.append(Object.assign(el("thead"), {}));
+    const hr = el("tr");
+    ["Year", "Shelf prices", "Change on year", "What you paid", "Change on year", "Products compared"].forEach((h, i) => hr.append(el("th", i ? { class: "num" } : {}, h)));
+    t.tHead.append(hr);
+    const tb = el("tbody");
+    idx.forEach((d, i) => {
+      const r = el("tr");
+      r.append(el("td", {}, d.year), el("td", { class: "num" }, d.index.toFixed(1)),
+        el("td", { class: "num" }, i ? pct(d.index / idx[i - 1].index - 1) : "—"),
+        el("td", { class: "num" }, d.paid.toFixed(1)),
+        el("td", { class: "num" }, i ? pct(d.paid / idx[i - 1].paid - 1) : "—"),
+        el("td", { class: "num" }, i ? d.products : "—"));
+      tb.append(r);
+    });
+    t.append(tb);
+  }
+
+  // ---- regulars table ------------------------------------------------------
+  const state = { q: "", status: "active", store: "", category: "", sort: "trips", dir: -1, selected: null };
+  const statusOptions = [["active", "Active"], ["due", "Due"], ["lapsed", "Lapsed"], ["all", "All"]];
+  for (const [v, label] of statusOptions) {
+    const b = el("button", { type: "button", "aria-pressed": String(v === state.status) }, label);
+    b.addEventListener("click", () => {
+      state.status = v;
+      for (const x of $("status-filter").children) x.setAttribute("aria-pressed", String(x === b));
+      renderRows();
+    });
+    $("status-filter").append(b);
+  }
+  const storesUsed = [...new Set(products.flatMap((p) => p.stores))].sort((a, b) => (storeNames[a] || a).localeCompare(storeNames[b] || b));
+  $("store-filter").append(el("option", { value: "" }, "All stores"));
+  storesUsed.forEach((s) => $("store-filter").append(el("option", { value: s }, storeNames[s] || s)));
+  const categories = [...new Set(products.map((p) => p.category).filter(Boolean))].sort();
+  $("category-filter").append(el("option", { value: "" }, "All categories"));
+  categories.forEach((c) => $("category-filter").append(el("option", { value: c }, c)));
+  if (!categories.length) $("category-filter").hidden = true;
+  $("q").addEventListener("input", (e) => { state.q = e.target.value.trim().toLowerCase(); renderRows(); });
+  $("store-filter").addEventListener("change", (e) => { state.store = e.target.value; renderRows(); });
+  $("category-filter").addEventListener("change", (e) => { state.category = e.target.value; renderRows(); });
+
+  const columns = [
+    { key: "name", label: "Product", get: (p) => p.name.toLowerCase() },
+    { key: "status", label: "Status", get: (p) => STATUS[p.status].order },
+    { key: "trips", label: "Trips", num: true, get: (p) => p.trips },
+    { key: "cadence", label: "Usually", get: (p) => p.cadence },
+    { key: "last", label: "Last bought", get: (p) => p.last },
+    { key: "sale", label: "On sale", num: true, get: (p) => (p.purchases ? p.onSale / p.purchases : 0) },
+    { key: "price", label: "Price now", num: true, get: (p) => (latest(p) ? latest(p).m : -1) },
+    { key: "change", label: "Shelf change", num: true, get: (p) => (p.change == null ? -Infinity : p.change) },
+    { key: "paidChange", label: "Paid change", num: true, get: (p) => (p.paidChange == null ? -Infinity : p.paidChange) },
+  ];
+  function renderHead() {
+    const head = $("head");
+    head.replaceChildren();
+    for (const c of columns) {
+      const th = el("th", c.num ? { class: "num", scope: "col" } : { scope: "col" });
+      if (c.get) {
+        const b = el("button", { type: "button" }, c.label);
+        if (state.sort === c.key) b.setAttribute("data-dir", state.dir > 0 ? "↑" : "↓");
+        b.addEventListener("click", () => {
+          if (state.sort === c.key) state.dir = -state.dir;
+          else { state.sort = c.key; state.dir = c.key === "name" || c.key === "status" ? 1 : -1; }
+          renderHead(); renderRows();
+        });
+        th.append(b);
+        th.setAttribute("aria-sort", state.sort === c.key ? (state.dir > 0 ? "ascending" : "descending") : "none");
+      } else th.textContent = c.label;
+      head.append(th);
+    }
+  }
+
+  function filtered() {
+    return products.filter((p) => {
+      if (state.status === "active" && p.status === "lapsed") return false;
+      if (state.status === "due" && p.status !== "due" && p.status !== "overdue") return false;
+      if (state.status === "lapsed" && p.status !== "lapsed") return false;
+      if (state.store && !p.stores.includes(state.store)) return false;
+      if (state.category && p.category !== state.category) return false;
+      if (state.q && !(p.name.toLowerCase().includes(state.q) || (p.category || "").toLowerCase().includes(state.q))) return false;
+      return true;
+    });
+  }
+
+  function renderRows() {
+    const col = columns.find((c) => c.key === state.sort);
+    const list = filtered().sort((a, b) => {
+      const va = col.get(a), vb = col.get(b);
+      if (va < vb) return -state.dir;
+      if (va > vb) return state.dir;
+      return b.trips - a.trips;
+    });
+    $("count").textContent = plural(list.length, "product", "products");
+    const tbody = $("rows");
+    tbody.replaceChildren();
+    if (!list.length) {
+      const r = el("tr");
+      r.append(el("td", { colspan: columns.length, class: "empty" }, "Nothing matches these filters."));
+      tbody.append(r);
+      return;
+    }
+    for (const p of list) {
+      const r = el("tr", { tabindex: 0, "aria-selected": String(p.id === state.selected) });
+      const name = el("td", { class: "name" }, p.name);
+      name.append(el("small", {}, [p.stores.map((s) => storeNames[s] || s).join(", "), p.category].filter(Boolean).join(" · ")));
+      const st = el("td");
+      st.append(statusBadge(p.status));
+      const l = latest(p);
+      const ch = el("td", { class: "num" }, p.change == null ? "—" : pct(p.change));
+      if (p.change != null && Math.abs(p.change) >= 0.005) ch.className = "num " + (p.change > 0 ? "delta-up" : "delta-down");
+      const pch = el("td", { class: "num" }, p.paidChange == null ? "—" : pct(p.paidChange));
+      if (p.paidChange != null && Math.abs(p.paidChange) >= 0.005) pch.className = "num " + (p.paidChange > 0 ? "delta-up" : "delta-down");
+      r.append(name, st, el("td", { class: "num" }, p.trips), el("td", {}, cadenceText(p.cadence)),
+        el("td", {}, fmtDate(p.last)), el("td", { class: "num" }, saleShare(p)),
+        el("td", { class: "num" }, l ? money(l.m) + unitSuffix(p) : "—"), ch, pch);
+      const pick = () => { state.selected = p.id; for (const x of tbody.children) x.setAttribute("aria-selected", String(x === r)); renderDetail(p); };
+      r.addEventListener("click", pick);
+      r.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+      tbody.append(r);
+    }
+  }
+
+  function saleShare(p) {
+    if (!p.purchases || !p.onSale) return "—";
+    return Math.round((100 * p.onSale) / p.purchases) + "%";
+  }
+
+  // ---- product detail ------------------------------------------------------
+  function fact(label, value) {
+    const d = el("div");
+    d.append(el("span", {}, label), el("strong", {}, value));
+    return d;
+  }
+
+  function timeAxis(svg, x, W, H, m) {
+    const y0 = parseInt(firstYear, 10), y1 = parseInt(DATA.today.slice(0, 4), 10);
+    for (let yr = y0; yr <= y1; yr++) {
+      const px = x(new Date(yr, 0, 1).getTime());
+      if (px < m.l - 1 || px > W - m.r + 1) continue;
+      svg.append(svgEl("line", { x1: px, x2: px, y1: m.t, y2: H - m.b, stroke: "var(--grid)", "stroke-width": 1 }));
+      const t = svgEl("text", { x: px + 3, y: H - 6 });
+      t.textContent = yr;
+      svg.append(t);
+    }
+  }
+
+  function nearestHover(svg, W, H, points, describe) {
+    // A pointer-nearest layer: readers aim near a dot rather than on it.
+    const ring = svgEl("circle", { r: 7, fill: "none", stroke: "var(--ink)", "stroke-width": 1.5, visibility: "hidden" });
+    svg.append(ring);
+    const hit = svgEl("rect", { x: 0, y: 0, width: W, height: H, fill: "transparent" });
+    svg.append(hit);
+    hit.addEventListener("pointermove", (evt) => {
+      const r = svg.getBoundingClientRect();
+      const px = ((evt.clientX - r.left) / r.width) * W, py = ((evt.clientY - r.top) / r.height) * H;
+      let best = null, bd = Infinity;
+      for (const p of points) {
+        const d = (p.x - px) ** 2 + (p.y - py) ** 2;
+        if (d < bd) { bd = d; best = p; }
+      }
+      if (!best || bd > 40 * 40) { ring.setAttribute("visibility", "hidden"); hideTip(); return; }
+      ring.setAttribute("cx", best.x); ring.setAttribute("cy", best.y); ring.setAttribute("visibility", "visible");
+      const [value, rows] = describe(best);
+      showTip(evt, value, rows);
+    });
+    hit.addEventListener("pointerleave", () => { ring.setAttribute("visibility", "hidden"); hideTip(); });
+  }
+
+  function drawTimeline(host, p) {
+    const W = Math.max(300, host.clientWidth), H = 64, m = { t: 8, r: 8, b: 22, l: 8 };
+    const t0 = date(DATA.from).getTime(), t1 = date(DATA.today).getTime();
+    const x = (t) => m.l + ((t - t0) / (t1 - t0)) * (W - m.l - m.r);
+    const svg = svgEl("svg", { class: "chart", viewBox: `0 0 ${W} ${H}`, height: H, role: "img", "aria-label": `${p.trips} purchase days of ${p.name}` });
+    timeAxis(svg, x, W, H, m);
+    const cy = m.t + (H - m.t - m.b) / 2;
+    svg.append(svgEl("line", { x1: m.l, x2: W - m.r, y1: cy, y2: cy, stroke: "var(--axis)", "stroke-width": 1 }));
+    const pts = p.visits.map((v) => ({ x: x(date(v.d).getTime()), y: cy, v }));
+    // Full-price days recede; sale days carry the accent so they stand out.
+    for (const pt of pts) if (!pt.v.s) svg.append(svgEl("circle", { cx: pt.x, cy: pt.y, r: 4, fill: "var(--store-other)", stroke: "var(--surface)", "stroke-width": 2 }));
+    for (const pt of pts) if (pt.v.s) svg.append(svgEl("circle", { cx: pt.x, cy: pt.y, r: 4, fill: "var(--accent)", stroke: "var(--surface)", "stroke-width": 2 }));
+    nearestHover(svg, W, H, pts, (pt) => [fmtDate(pt.v.d), [
+      { text: `${+pt.v.q.toFixed(2)} ${p.unit === "kg" ? "kg" : "bought"} · ${money(pt.v.p)} paid`, colour: pt.v.s ? "var(--accent)" : "var(--store-other)" },
+      { text: pt.v.s ? "On sale" : "Full price" },
+    ]]);
+    host.append(svg);
+    const legend = el("div", { class: "legend" });
+    for (const [c, t] of [["var(--accent)", "On sale"], ["var(--store-other)", "Full price"]]) {
+      const item = el("span"), i = el("i");
+      i.style.background = c;
+      item.append(i, document.createTextNode(t));
+      legend.append(item);
+    }
+    host.append(legend);
+  }
+
+  function drawPrices(host, p) {
+    const pts = p.prices || [];
+    if (!pts.length) { host.append(el("p", { class: "empty" }, "No readable prices.")); return; }
+    const W = Math.max(300, host.clientWidth), H = 200, m = { t: 10, r: 10, b: 22, l: 52 };
+    const t0 = date(DATA.from).getTime(), t1 = date(DATA.today).getTime();
+    const good = pts.filter((d) => !d.o);
+    const vals = (good.length ? good : pts).flatMap((d) => (d.sl ? [d.v, d.p] : [d.v])).concat((p.yearly || []).filter((yr) => yr.pn).map((yr) => yr.p));
+    let lo = Math.min(...vals), hi = Math.max(...vals);
+    const span = Math.max(hi - lo, hi * 0.2, 20);
+    lo = Math.max(0, lo - span * 0.15); hi = hi + span * 0.15;
+    const x = (t) => m.l + ((t - t0) / (t1 - t0)) * (W - m.l - m.r);
+    const y = (v) => m.t + (1 - (Math.min(Math.max(v, lo), hi) - lo) / (hi - lo)) * (H - m.t - m.b);
+    const svg = svgEl("svg", { class: "chart", viewBox: `0 0 ${W} ${H}`, height: H, role: "img", "aria-label": `Unit prices paid for ${p.name}` });
+    timeAxis(svg, x, W, H, m);
+    const step = niceStep((hi - lo) / 4);
+    for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) {
+      svg.append(svgEl("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: "var(--grid)", "stroke-width": 1 }));
+      const t = svgEl("text", { x: m.l - 6, y: y(v) + 4, "text-anchor": "end" });
+      t.textContent = money(v);
+      svg.append(t);
+    }
+    // Yearly median as a step line: the trend the dots scatter around.
+    let d = "";
+    for (const yr of p.yearly || []) {
+      const a = x(new Date(yr.y, 0, 1).getTime()), b = x(Math.min(new Date(yr.y + 1, 0, 1).getTime(), t1));
+      d += `M${Math.max(a, m.l).toFixed(1)} ${y(yr.m).toFixed(1)}H${b.toFixed(1)}`;
+    }
+    svg.append(svgEl("path", { d, fill: "none", stroke: "var(--ink-2)", "stroke-width": 2, "stroke-linecap": "round", opacity: 0.7 }));
+    let dp = "";
+    for (const yr of p.yearly || []) {
+      if (!yr.pn) continue;
+      const a = x(new Date(yr.y, 0, 1).getTime()), b = x(Math.min(new Date(yr.y + 1, 0, 1).getTime(), t1));
+      dp += `M${Math.max(a, m.l).toFixed(1)} ${y(yr.p).toFixed(1)}H${b.toFixed(1)}`;
+    }
+    svg.append(svgEl("path", { d: dp, fill: "none", stroke: "var(--paid)", "stroke-width": 2, "stroke-linecap": "round" }));
+    const placed = pts.map((pt) => ({ x: x(date(pt.d).getTime()), y: y(pt.v), pt }));
+    // A sale drops from the shelf price to a ring at the price actually paid.
+    for (const q of placed) {
+      if (q.pt.o || !q.pt.sl || q.pt.p >= q.pt.v) continue;
+      svg.append(svgEl("line", { x1: q.x, x2: q.x, y1: q.y, y2: y(q.pt.p), stroke: "var(--ink-2)", "stroke-width": 1.5, opacity: 0.6 }));
+    }
+    for (const q of placed) {
+      if (q.pt.o) svg.append(svgEl("circle", { cx: q.x, cy: q.y, r: 3.5, fill: "var(--surface)", stroke: "var(--muted)", "stroke-width": 1.5 }));
+      else svg.append(svgEl("circle", { cx: q.x, cy: q.y, r: 4, fill: storeColour(q.pt.s), stroke: "var(--surface)", "stroke-width": 2 }));
+    }
+    for (const q of placed) {
+      if (q.pt.o || !q.pt.sl) continue;
+      if (q.pt.p < q.pt.v) svg.append(svgEl("circle", { cx: q.x, cy: y(q.pt.p), r: 3.5, fill: "var(--surface)", stroke: "var(--ink)", "stroke-width": 1.5 }));
+      else svg.append(svgEl("circle", { cx: q.x, cy: q.y, r: 6.5, fill: "none", stroke: "var(--ink)", "stroke-width": 1.5 }));
+    }
+    nearestHover(svg, W, H, placed, (q) => {
+      const rows = [{ text: `${fmtDate(q.pt.d)} · ${storeNames[q.pt.s] || q.pt.s}`, colour: storeColour(q.pt.s) }];
+      if (q.pt.sl && q.pt.p < q.pt.v) rows.push({ text: `On sale: paid ${money(q.pt.p)}${unitSuffix(p)} (−${Math.round(100 * (1 - q.pt.p / q.pt.v))}%)` });
+      else if (q.pt.mk) rows.push({ text: "Marked on sale; regular price not printed, so left out of the trend" });
+      if (q.pt.o) rows.push({ text: "Far from the usual price; left out of the trend" });
+      return [money(q.pt.v) + unitSuffix(p), rows];
+    });
+    host.append(svg);
+    const legend = el("div", { class: "legend" });
+    const stores = [...new Set(pts.map((q) => q.s))];
+    for (const s of stores) {
+      const item = el("span");
+      const i = el("i");
+      i.style.background = storeColour(s);
+      item.append(i, document.createTextNode(storeNames[s] || s));
+      legend.append(item);
+    }
+    if (pts.some((q) => q.sl)) {
+      const sale = el("span");
+      sale.append(el("i", { class: "ring" }), document.createTextNode("Paid on sale"));
+      legend.append(sale);
+    }
+    const med = el("span");
+    const mi = el("i", { class: "line" });
+    mi.style.background = "var(--ink-2)";
+    med.append(mi, document.createTextNode("Yearly average shelf price"));
+    legend.append(med);
+    const avg = el("span"), ai = el("i", { class: "line" });
+    ai.style.background = "var(--paid)";
+    avg.append(ai, document.createTextNode("Yearly average paid"));
+    legend.append(avg);
+    host.append(legend);
+  }
+
+  function niceStep(raw) {
+    const pow = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 1))));
+    for (const f of [1, 2, 2.5, 5, 10]) if (raw <= f * pow) return f * pow;
+    return 10 * pow;
+  }
+
+  function renderDetail(p) {
+    const host = $("detail");
+    host.replaceChildren();
+    if (!p) {
+      host.append(el("h2", {}, "Product history"), el("p", { class: "empty" }, "Select a product to see when you bought it and what it cost."));
+      return;
+    }
+    host.append(el("h3", {}, p.name));
+    host.append(el("p", { class: "meta" }, [p.stores.map((s) => storeNames[s] || s).join(", "), p.category].filter(Boolean).join(" · ")));
+    const facts = el("div", { class: "facts" });
+    const qtys = p.visits.map((v) => v.q).sort((a, b) => a - b);
+    const typical = qtys[Math.floor(qtys.length / 2)];
+    facts.append(
+      fact("Status", STATUS[p.status].label),
+      fact("Usually", cadenceText(p.cadence)),
+      fact("Last bought", `${p.since} days ago`),
+      fact("Bought on", plural(p.trips, "day", "days")),
+      fact("Per trip", p.unit === "kg" ? `${typical.toFixed(2)} kg` : `${+typical.toFixed(1)}`),
+      fact("Total spent", money(p.spent)),
+    );
+    const l = latest(p);
+    if (l) facts.append(fact(`Price ${l.y}`, money(l.m) + unitSuffix(p)));
+    if (p.change != null) facts.append(fact(`Shelf price since ${p.changeFrom.y}`, pct(p.change)));
+    if (p.paidChange != null) facts.append(fact(`What you paid since ${p.paidFrom.y}`, pct(p.paidChange)));
+    facts.append(fact("Bought on sale", p.onSale ? `${p.onSale} of ${p.purchases} times` : "Never"));
+    if (p.saved > 0) facts.append(fact("Saved on sales", money(p.saved)));
+    if (p.saleCut != null) facts.append(fact("Typical sale", "−" + Math.round(p.saleCut * 100) + "%"));
+    host.append(facts);
+
+    host.append(el("div", { class: "chart-title" }, "When you bought it"), el("p", { class: "chart-note" }, `${fmtDate(p.first)} to ${fmtDate(p.last)}`));
+    const tl = el("div");
+    host.append(tl);
+    drawTimeline(tl, p);
+
+    host.append(el("div", { class: "chart-title" }, `Shelf price${p.unit === "kg" ? " per kg" : " per item"}`),
+      el("p", { class: "chart-note" }, "Each dot is one purchase at its regular shelf price. On sale, a line drops to a ring at the price you paid. Grey hollow dots were far from the usual price and are left out of the trend."));
+    const pc = el("div");
+    host.append(pc);
+    drawPrices(pc, p);
+
+    if (!DATA.public && p.keys && p.keys.length) {
+      const keys = el("div", { class: "keys" }, "Catalogue match: ");
+      p.keys.forEach((k, i) => { if (i) keys.append(document.createTextNode(" ")); keys.append(el("code", {}, k)); });
+      host.append(keys);
+    }
+  }
+
+  // ---- movers diverging bars -------------------------------------------------
+  const MEASURES = {
+    shelf: { label: "Shelf prices", change: (p) => p.change, from: (p) => p.changeFrom, to: (p) => p.changeTo, value: (yr) => yr.m,
+      sub: "Products you still buy, comparing the average regular shelf price in the first and latest years with at least two purchases." },
+    paid: { label: "What you paid", change: (p) => p.paidChange, from: (p) => p.paidFrom, to: (p) => p.paidTo, value: (yr) => yr.p,
+      sub: "Products you still buy, comparing the average price actually paid, sales included, in the first and latest years with at least two purchases." },
+  };
+  let measure = "shelf";
+  for (const [k, mdef] of Object.entries(MEASURES)) {
+    const b = el("button", { type: "button", "aria-pressed": String(k === measure) }, mdef.label);
+    b.addEventListener("click", () => {
+      measure = k;
+      for (const x of $("movers-measure").children) x.setAttribute("aria-pressed", String(x === b));
+      drawMovers();
+    });
+    $("movers-measure").append(b);
+  }
+  function drawMovers() {
+    const host = $("movers");
+    host.replaceChildren();
+    const M = MEASURES[measure];
+    const withChange = products.filter((p) => M.change(p) != null && p.status !== "lapsed" && M.to(p).y >= parseInt(lastYear, 10) - 1)
+      .map((p) => ({ p, change: M.change(p), first: M.from(p), last: M.to(p) }));
+    const ups = withChange.filter((r) => r.change > 0).sort((a, b) => b.change - a.change).slice(0, 10);
+    const downs = withChange.filter((r) => r.change < 0).sort((a, b) => a.change - b.change).slice(0, 5);
+    const list = [...ups, ...downs.reverse()];
+    $("movers-sub").textContent = M.sub;
+    if (!list.length) { host.append(el("p", { class: "empty" }, "No price changes yet.")); return; }
+    const W = Math.max(320, host.clientWidth), row = 30, m = { t: 6, r: 56, b: 6, l: Math.min(220, W * 0.36) };
+    const H = m.t + m.b + row * list.length;
+    const lo = Math.min(0, ...list.map((r) => r.change));
+    const scale = (W - m.l - m.r) / (Math.max(...list.map((r) => r.change), 0) - lo || 1);
+    const x0 = m.l + -lo * scale;
+    const svg = svgEl("svg", { class: "chart", viewBox: `0 0 ${W} ${H}`, height: H, role: "img", "aria-label": "Products with the largest price changes" });
+    svg.append(svgEl("line", { x1: x0, x2: x0, y1: m.t, y2: H - m.b, stroke: "var(--axis)", "stroke-width": 1 }));
+    list.forEach((mv, i) => {
+      const p = mv.p;
+      const cy = m.t + i * row + row / 2;
+      const w = Math.max(2, Math.abs(mv.change) * scale);
+      const up = mv.change > 0;
+      const r = 4, h = 16, top = cy - h / 2;
+      // Rounded at the data end, square at the baseline.
+      const d = up
+        ? `M${x0} ${top}H${x0 + w - r}Q${x0 + w} ${top} ${x0 + w} ${top + r}V${top + h - r}Q${x0 + w} ${top + h} ${x0 + w - r} ${top + h}H${x0}Z`
+        : `M${x0} ${top}H${x0 - w + r}Q${x0 - w} ${top} ${x0 - w} ${top + r}V${top + h - r}Q${x0 - w} ${top + h} ${x0 - w + r} ${top + h}H${x0}Z`;
+      const bar = svgEl("path", { d, fill: up ? "var(--up)" : "var(--down)", tabindex: 0 });
+      const name = svgEl("text", { x: 0, y: cy + 4, class: "label-ink" });
+      name.textContent = p.name.length > 26 ? p.name.slice(0, 25) + "…" : p.name;
+      const val = svgEl("text", { x: up ? x0 + w + 6 : x0 + 6, y: cy + 4, class: "label-ink-2" });
+      if (!up) val.setAttribute("x", Math.max(x0 + 6, x0 + 6));
+      val.textContent = pct(mv.change);
+      if (!up) { val.setAttribute("x", x0 - w - 6); val.setAttribute("text-anchor", "end"); }
+      if (!up && x0 - w - 6 - 40 < m.l) { val.setAttribute("x", x0 + 6); val.setAttribute("text-anchor", "start"); }
+      const hitRow = svgEl("rect", { x: 0, y: cy - row / 2, width: W, height: row, fill: "transparent" });
+      const tipFor = (evt) => showTip(evt, pct(mv.change), [
+        { text: `${p.name}`, colour: up ? "var(--up)" : "var(--down)" },
+        { text: `${money(M.value(mv.first))} in ${mv.first.y} → ${money(M.value(mv.last))} in ${mv.last.y}${unitSuffix(p)}` },
+        { text: `On sale ${p.onSale} of ${p.purchases} times` },
+      ]);
+      hitRow.addEventListener("pointermove", tipFor);
+      hitRow.addEventListener("pointerleave", hideTip);
+      hitRow.addEventListener("click", () => { state.selected = p.id; renderRows(); renderDetail(p); $("detail").scrollIntoView({ behavior: "smooth", block: "nearest" }); });
+      hitRow.style.cursor = "pointer";
+      svg.append(bar, name, val, hitRow);
+    });
+    host.append(svg);
+    const legend = el("div", { class: "legend" });
+    for (const [c, t] of [["var(--up)", "Price rose"], ["var(--down)", "Price fell"]]) {
+      const s = el("span"), i = el("i");
+      i.style.background = c; i.style.borderRadius = "2px";
+      s.append(i, document.createTextNode(t));
+      legend.append(s);
+    }
+    host.append(legend);
+  }
+
+  // ---- data quality ------------------------------------------------------------
+  function renderQuality() {
+    const t = $("quality");
+    const head = el("thead"), hr = el("tr");
+    ["Store", "Receipts", "Reconciled", "Didn't add up", "No total or items", "Items read"].forEach((h, i) => hr.append(el("th", i ? { class: "num" } : {}, h)));
+    head.append(hr);
+    const tb = el("tbody");
+    for (const s of DATA.quality) {
+      const r = el("tr");
+      r.style.cursor = "default";
+      r.append(el("td", {}, storeNames[s.store] || s.store), el("td", { class: "num" }, s.receipts),
+        el("td", { class: "num" }, `${s.reconciled} (${Math.round((100 * s.reconciled) / s.receipts)}%)`),
+        el("td", { class: "num" }, s.mismatch), el("td", { class: "num" }, s.unverified), el("td", { class: "num" }, s.items.toLocaleString("en-CA")));
+      tb.append(r);
+    }
+    t.append(head, tb);
+  }
+
+  $("footer").textContent = DATA.public
+    ? `Generated ${DATA.generated} by larder from receipts dated ${DATA.from} to ${DATA.to}. Health, personal-care and alcohol purchases are left out, and dates are rounded to the start of the week. ${plural(DATA.others, "other product was", "other products were")} bought too rarely to count as regular.`
+    : `Generated ${DATA.generated} by larder from receipts dated ${DATA.from} to ${DATA.to}. ${plural(DATA.others, "other product was", "other products were")} bought too rarely to count as regular. Name, group and categorise products in the catalogue file; the codes under each product's history are what it matches on.`;
+
+  renderHead();
+  renderRows();
+  renderQuality();
+  const firstActive = products.find((p) => p.status !== "lapsed") || products[0];
+  if (firstActive) { state.selected = firstActive.id; renderRows(); }
+  const draw = () => {
+    drawIndex();
+    drawMovers();
+    renderDetail(products.find((p) => p.id === state.selected));
+  };
+  draw();
+  let pending = null;
+  window.addEventListener("resize", () => { clearTimeout(pending); pending = setTimeout(draw, 120); });
+})();
+</script>
+</body>
+</html>
