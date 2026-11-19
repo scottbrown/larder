@@ -7,7 +7,7 @@ It reads the receipt images itself using macOS's built-in Vision text recognitio
 ## Requirements
 
 - macOS (text recognition uses Apple's Vision framework through cgo)
-- Go 1.25 or later
+- Go 1.27.4 or later
 - [Task](https://taskfile.dev) for building and testing
 
 ## Building
