@@ -100,6 +100,21 @@ func TestCommandsEndToEnd(t *testing.T) {
 		t.Error("dashboard missing content")
 	}
 
+	site := t.TempDir()
+	run(t, append([]string{"dashboard", "--public", "--assets", "/larder/", "-o", filepath.Join(site, "index.html")}, flags...)...)
+	page, err = os.ReadFile(filepath.Join(site, "index.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(page), `<script src="/larder/app.js"></script>`) || strings.Contains(string(page), "<script>") {
+		t.Error("dashboard with --assets does not load its script from the prefix")
+	}
+	for _, name := range []string{"data.js", "app.js"} {
+		if _, err := os.Stat(filepath.Join(site, name)); err != nil {
+			t.Errorf("dashboard with --assets did not write %s: %v", name, err)
+		}
+	}
+
 	receipt := filepath.Join(strings.TrimSuffix(flags[1], "receipts")+"receipts", "2025", "20250115-Costco-Receipt.pdf")
 	if out := run(t, append([]string{"ocr", receipt}, flags...)...); !strings.Contains(out, "30669 BANANAS | 1.99") {
 		t.Errorf("ocr output:\n%s", out)

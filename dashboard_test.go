@@ -73,3 +73,67 @@ func TestDashboardEscapesScriptContent(t *testing.T) {
 		t.Error("product name not escaped")
 	}
 }
+
+func TestRenderDashboardInlinesScript(t *testing.T) {
+	var buf bytes.Buffer
+	if err := RenderDashboard(&buf, DashboardData{}); err != nil {
+		t.Fatal(err)
+	}
+	page := buf.String()
+	if !strings.Contains(page, "<script>const DATA = ") || !strings.Contains(page, dashboardScript) {
+		t.Error("self-contained page does not inline its data and script")
+	}
+	if strings.Contains(page, "<script src=") {
+		t.Error("self-contained page loads an external script")
+	}
+}
+
+func TestRenderDashboardFilesLoadsScriptsFromPrefix(t *testing.T) {
+	data := DashboardData{Products: []DashboardProduct{{Name: "BANANAS"}}}
+	var page, dataJS, script bytes.Buffer
+	files := DashboardFiles{Page: &page, Data: &dataJS, Script: &script}
+	if err := RenderDashboardFiles(files, data, AssetPrefix("/larder/")); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`<script src="/larder/data.js"></script>`, `<script src="/larder/app.js"></script>`} {
+		if !strings.Contains(page.String(), want) {
+			t.Errorf("page missing %s", want)
+		}
+	}
+	if strings.Contains(page.String(), "<script>") {
+		t.Error("page still has an inline script")
+	}
+	if !strings.HasPrefix(dataJS.String(), "const DATA = ") || !strings.Contains(dataJS.String(), `"name":"BANANAS"`) {
+		t.Errorf("data file = %q", dataJS.String())
+	}
+	if script.String() != dashboardScript {
+		t.Error("script file differs from the dashboard script")
+	}
+}
+
+func TestRenderDashboardFilesEscapesScriptContent(t *testing.T) {
+	data := DashboardData{Products: []DashboardProduct{{Name: "</script><script>alert(1)</script>"}}}
+	var page, dataJS, script bytes.Buffer
+	if err := RenderDashboardFiles(DashboardFiles{Page: &page, Data: &dataJS, Script: &script}, data, ""); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(dataJS.String(), "</script>") {
+		t.Error("product name not escaped in the data file")
+	}
+}
+
+func TestAssetPrefixURL(t *testing.T) {
+	for _, tc := range []struct {
+		prefix AssetPrefix
+		want   string
+	}{
+		{"/larder/", "/larder/app.js"},
+		{"/larder", "/larder/app.js"},
+		{"https://example.com/larder/", "https://example.com/larder/app.js"},
+		{"", "app.js"},
+	} {
+		if got := tc.prefix.URL(DashboardScriptFile); got != tc.want {
+			t.Errorf("AssetPrefix(%q).URL = %q, want %q", tc.prefix, got, tc.want)
+		}
+	}
+}
