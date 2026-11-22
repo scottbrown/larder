@@ -2,14 +2,53 @@ package larder
 
 import (
 	_ "embed"
+	"encoding/json"
 	"html/template"
 	"io"
 	"sort"
+	"strings"
 	"time"
 )
 
 //go:embed dashboard.tmpl.html
 var dashboardTemplate string
+
+//go:embed dashboard.js
+var dashboardScript string
+
+// The files RenderDashboardFiles writes the dashboard's data and script to.
+const (
+	DashboardDataFile   = "data.js"
+	DashboardScriptFile = "app.js"
+)
+
+// AssetPrefix is the URL a page loads its script files from, such as
+// "/larder/". An empty prefix loads them relative to the page.
+type AssetPrefix string
+
+// URL returns the URL of the named file under the prefix.
+func (p AssetPrefix) URL(name string) string {
+	if p == "" {
+		return name
+	}
+	return strings.TrimSuffix(string(p), "/") + "/" + name
+}
+
+// DashboardFiles are the destinations of a dashboard whose data and script
+// are separate files, for sites whose Content Security Policy blocks inline
+// scripts.
+type DashboardFiles struct {
+	Page   io.Writer
+	Data   io.Writer
+	Script io.Writer
+}
+
+type dashboardPage struct {
+	Data      DashboardData
+	Script    template.JS
+	DataURL   string
+	ScriptURL string
+}
 
 // DashboardData is everything the dashboard page renders, serialised into
 // the page as JSON.
@@ -196,11 +235,36 @@ func receiptQuality(receipts []Receipt) []StoreQuality {
 
 // RenderDashboard writes the self-contained HTML dashboard.
 func RenderDashboard(w io.Writer, data DashboardData) error {
+	return renderDashboardPage(w, dashboardPage{Data: data, Script: template.JS(dashboardScript)})
+}
+
+// RenderDashboardFiles writes the dashboard as a page that loads its data
+// and script from DashboardDataFile and DashboardScriptFile under prefix.
+func RenderDashboardFiles(files DashboardFiles, data DashboardData, prefix AssetPrefix) error {
+	page := dashboardPage{
+		DataURL:   prefix.URL(DashboardDataFile),
+		ScriptURL: prefix.URL(DashboardScriptFile),
+	}
+	if err := renderDashboardPage(files.Page, page); err != nil {
+		return err
+	}
+	encoded, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	if _, err := io.WriteString(files.Data, "const DATA = "+string(encoded)+";\n"); err != nil {
+		return err
+	}
+	_, err = io.WriteString(files.Script, dashboardScript)
+	return err
+}
+
+func renderDashboardPage(w io.Writer, page dashboardPage) error {
 	tmpl, err := template.New("dashboard").Parse(dashboardTemplate)
 	if err != nil {
 		return err
 	}
-	return tmpl.Execute(w, data)
+	return tmpl.Execute(w, page)
 }
 
 func earlier(a, b time.Time) time.Time {

@@ -61,7 +61,7 @@ larder dashboard -o larder.html
 | `audit [-v]` | Counts receipts whose items add up to the printed subtotal, by store; `-v` lists the ones that don't |
 | `regulars [-n N]` | Lists regular products with how often they are bought, when they were last bought, their status, how often they were bought on sale, and how their price has changed |
 | `catalogue [-n N]` | Prints YAML stubs for regular products the catalogue doesn't cover yet |
-| `dashboard [-o file]` | Writes the HTML dashboard |
+| `dashboard [-o file] [--public] [--assets prefix]` | Writes the HTML dashboard |
 | `items` | Exports every parsed line item as CSV |
 | `ocr <file>...` | Prints the recognised rows of a receipt, for debugging |
 
@@ -89,6 +89,16 @@ These global flags apply to every command:
   - how often the product was bought on sale, the total saved and the typical sale discount.
 - **Biggest price changes:** the largest rises and falls among products still bought, by shelf price or by price paid.
 - **Receipt quality:** reconciliation results by store.
+
+### Publishing on a site with a Content Security Policy
+
+The single file runs its script inline, which a Content Security Policy with `script-src 'self'` blocks. `--assets` writes the data and script as `data.js` and `app.js` next to the output file instead, and the page loads them from the given URL prefix:
+
+```sh
+larder dashboard --public --assets /larder/ -o ~/code/scottbrown/typicalrunt.me/static/larder/index.html
+```
+
+Use an absolute prefix if the page can be served without a trailing slash (`/larder` as well as `/larder/`), so the script URLs don't depend on the page's URL.
 
 ## How it works
 
